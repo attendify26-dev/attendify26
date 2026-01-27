@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Mark Attendance</title>
+</head>
+<body>
+  <h2>Mark Attendance</h2>
+
+  <input id="roll" placeholder="Roll Number"><br><br>
+  <input id="name" placeholder="Name"><br><br>
+
+  <button onclick="mark()">Submit Attendance</button>
+
+  <p id="msg"></p>
+
+<script>
+const urlParams = new URLSearchParams(window.location.search);
+const session_id = urlParams.get("session_id");
+const token = urlParams.get("token");
+
+function mark(){
+  navigator.geolocation.getCurrentPosition(pos => {
+
+    let device_id = localStorage.getItem("device_id");
+    if(!device_id){
+      device_id = Math.random().toString(36).substring(2);
+      localStorage.setItem("device_id", device_id);
+    }
+
+    fetch("http://127.0.0.1:5000/api/attendance/mark", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({
+        session_id: session_id,
+        token: token,
+        roll: document.getElementById("roll").value,
+        name: document.getElementById("name").value,
+        device_id: device_id,
+        lat: pos.coords.latitude,
+        lng: pos.coords.longitude
+      })
+    })
+    .then(r => r.json())
+    .then(data => {
+      document.getElementById("msg").innerText = data.message;
+    });
+
+  });
+}
+</script>
+</body>
+</html>

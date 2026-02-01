@@ -27,7 +27,7 @@ function mark(){
       localStorage.setItem("device_id", device_id);
     }
 
-    fetch("http://127.0.0.1:5000/api/attendance/mark", {
+    fetch("https://attendify26-production.up.railway.app/api/attendance/mark", {
       method: "POST",
       headers: {"Content-Type": "application/json"},
       body: JSON.stringify({
@@ -50,3 +50,4 @@ function mark(){
 </script>
 </body>
 </html>
+

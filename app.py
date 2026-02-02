@@ -7,6 +7,11 @@ import qrcode
 from datetime import datetime, timedelta
 import math
 import os
+import io
+import base64
+import uuid
+from datetime import datetime, timedelta
+
 
 app = Flask(__name__)
 CORS(app)
@@ -207,5 +212,6 @@ def serve_file(filename):
 
 if __name__ == "__main__":
     app.run(debug=True, host="0.0.0.0")
+
 
 

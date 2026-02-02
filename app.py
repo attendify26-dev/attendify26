@@ -73,53 +73,67 @@ def faculty_login():
 
 @app.route("/api/session/create", methods=["POST"])
 def create_session():
-    data = request.json
+    try:
+        data = request.json
 
-    faculty_id = data.get("faculty_id")
-    subject = data.get("subject")
-    section = data.get("section")
-    radius = float(data.get("radius"))       # meters
-    time_limit = int(data.get("time_limit")) # minutes
-    lat = float(data.get("lat"))
-    lng = float(data.get("lng"))
+        faculty_id = data.get("faculty_id")
+        if not faculty_id:
+            return jsonify({
+                "success": False,
+                "message": "Faculty not logged in"
+            }), 401
 
-    token = str(uuid.uuid4())
+        subject = data.get("subject")
+        section = data.get("section")
+        radius = float(data.get("radius"))
+        time_limit = int(data.get("time_limit"))
+        lat = float(data.get("lat"))
+        lng = float(data.get("lng"))
 
-    start_time = datetime.utcnow()
-    end_time = start_time + timedelta(minutes=time_limit)
+        token = str(uuid.uuid4())
 
-    session = {
-        "faculty_id": faculty_id,
-        "subject": subject,
-        "section": section,
-        "radius": radius,
-        "faculty_lat": lat,
-        "faculty_lng": lng,
-        "start_time": start_time,
-        "end_time": end_time,
-        "active": True,
-        "token": token
-    }
+        start_time = datetime.utcnow()
+        end_time = start_time + timedelta(minutes=time_limit)
 
-    result = sessions_col.insert_one(session)
-    session_id = str(result.inserted_id)
+        session = {
+            "faculty_id": faculty_id,
+            "subject": subject,
+            "section": section,
+            "radius": radius,
+            "faculty_lat": lat,
+            "faculty_lng": lng,
+            "start_time": start_time,
+            "end_time": end_time,
+            "active": True,
+            "token": token
+        }
 
-    # IMPORTANT: Change this to your Render / Cloud URL later
-    BASE_URL = "https://attendify26-production.up.railway.app/"
+        result = sessions_col.insert_one(session)
+        session_id = str(result.inserted_id)
 
-    qr_url = f"{BASE_URL}/mark?session_id={session_id}&token={token}"
+        BASE_URL = "https://attendify26-production.up.railway.app"
 
-    img = qrcode.make(qr_url)
-    qr_path = f"qr_{session_id}.png"
-    img.save(qr_path)
+        qr_url = f"{BASE_URL}/mark.html?session_id={session_id}&token={token}"
 
-    return jsonify({
-        "success": True,
-        "session_id": session_id,
-        "token": token,
-        "qr_url": qr_url,
-        "qr_image": qr_path
-    })
+        img = qrcode.make(qr_url)
+        buffer = io.BytesIO()
+        img.save(buffer, format="PNG")
+        qr_base64 = base64.b64encode(buffer.getvalue()).decode()
+
+        return jsonify({
+            "success": True,
+            "session_id": session_id,
+            "token": token,
+            "qr_url": qr_url,
+            "qr_base64": qr_base64
+        })
+
+    except Exception as e:
+        print("CREATE SESSION ERROR:", e)
+        return jsonify({
+            "success": False,
+            "message": "Server error"
+        }), 500
 
 # ------------------ Mark Attendance ------------------
 
@@ -193,4 +207,5 @@ def serve_file(filename):
 
 if __name__ == "__main__":
     app.run(debug=True, host="0.0.0.0")
+
 

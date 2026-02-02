@@ -87,33 +87,37 @@
   <button onclick="login()">Sign in</button>
   <div class="msg" id="msg"></div>
 </div>
-
 <script>
-const API = "const API = "https://attendify26-production.up.railway.app/"; // later replace with Railway URL
-
+const API = "https://attendify26-production.up.railway.app";
 
 async function login() {
-  const email = emailInput = document.getElementById("email").value;
+  const email = document.getElementById("email").value;
   const password = document.getElementById("password").value;
 
-  const res = await fetch(API + "/api/faculty/login", {
-    method: "POST",
-    headers: {"Content-Type": "application/json"},
-    body: JSON.stringify({ email, password })
-  });
+  try {
+    const res = await fetch(API + "/api/faculty/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password })
+    });
 
-  const data = await res.json();
+    const data = await res.json();
 
-  if (data.success) {
-    localStorage.setItem("faculty_id", data.faculty_id);
-    localStorage.setItem("faculty_name", data.name);
-    window.location.href = "dashboard.html";
-  } else {
-    document.getElementById("msg").innerText = "Invalid email or password";
+    if (data.success) {
+      localStorage.setItem("faculty_id", data.faculty_id);
+      localStorage.setItem("faculty_name", data.name);
+      window.location.href = "dashboard.html";
+    } else {
+      alert("Invalid email or password");
+    }
+  } catch (err) {
+    console.error(err);
+    alert("Server error");
   }
 }
 </script>
 
 </body>
 </html>
+
 

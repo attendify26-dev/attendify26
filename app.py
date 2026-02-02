@@ -118,7 +118,7 @@ def create_session():
 
         BASE_URL = "https://attendify26-production.up.railway.app"
 
-        qr_url = f"{BASE_URL}/mark.html?session_id={session_id}&token={token}"
+        qr_url = f"{BASE_URL}/mark?session_id={session_id}&token={token}
 
         img = qrcode.make(qr_url)
         buffer = io.BytesIO()
@@ -212,6 +212,7 @@ def serve_file(filename):
 
 if __name__ == "__main__":
     app.run(debug=True, host="0.0.0.0")
+
 
 
 

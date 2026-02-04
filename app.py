@@ -7,6 +7,8 @@ import qrcode
 from datetime import datetime, timedelta
 import math
 import os
+import io
+import base64
 
 app = Flask(__name__)
 CORS(app)
@@ -109,15 +111,17 @@ def create_session():
 
     qr_url = f"{BASE_URL}/mark?session_id={session_id}&token={token}"
 
-    # Create qr_codes directory if it doesn't exist
-    qr_dir = os.path.join(os.path.dirname(__file__), "qr_codes")
-    os.makedirs(qr_dir, exist_ok=True)
-    
     try:
+        # Generate QR code
         img = qrcode.make(qr_url)
-        qr_filename = f"qr_{session_id}.png"
-        qr_path = os.path.join(qr_dir, qr_filename)
-        img.save(qr_path)
+        
+        # Convert image to base64 string for direct embedding
+        buffer = io.BytesIO()
+        img.save(buffer, format='PNG')
+        buffer.seek(0)
+        qr_base64 = base64.b64encode(buffer.getvalue()).decode('utf-8')
+        qr_data_url = f"data:image/png;base64,{qr_base64}"
+        
     except Exception as e:
         print(f"Error generating QR code: {e}")
         return jsonify({"success": False, "message": "Failed to generate QR code"}), 500
@@ -127,7 +131,7 @@ def create_session():
         "session_id": session_id,
         "token": token,
         "qr_url": qr_url,
-        "qr_image": f"qr/{qr_filename}"
+        "qr_image": qr_data_url
     })
 
 # ------------------ Mark Attendance ------------------

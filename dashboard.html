@@ -86,7 +86,7 @@
 </div>
 
 <script>
-const API = "https://attendify26-production.up.railway.app/"; // later replace with Railway URL
+const API = "https://attendify26-production.up.railway.app"; // later replace with Railway URL
 
 async function create() {
   const faculty_id = localStorage.getItem("faculty_id");
@@ -117,9 +117,8 @@ async function create() {
     const data = await res.json();
 
     if (data.success) {
-      // 🔥 THIS IS THE REAL FIX
       const img = document.getElementById("qr");
-      img.src = API + "/" + data.qr_image;   // <-- load image file, not link
+      img.src = data.qr_image;   // <-- base64 data URL, no need for API prefix
       img.style.display = "block";
     } else {
       alert("Error creating session");
@@ -132,4 +131,3 @@ async function create() {
 
 </body>
 </html>
-

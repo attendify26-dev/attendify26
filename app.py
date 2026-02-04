@@ -7,11 +7,6 @@ import qrcode
 from datetime import datetime, timedelta
 import math
 import os
-import io
-import base64
-import uuid
-from datetime import datetime, timedelta
-
 
 app = Flask(__name__)
 CORS(app)
@@ -78,67 +73,62 @@ def faculty_login():
 
 @app.route("/api/session/create", methods=["POST"])
 def create_session():
+    data = request.json
+
+    faculty_id = data.get("faculty_id")
+    subject = data.get("subject")
+    section = data.get("section")
+    radius = float(data.get("radius"))       # meters
+    time_limit = int(data.get("time_limit")) # minutes
+    lat = float(data.get("lat"))
+    lng = float(data.get("lng"))
+
+    token = str(uuid.uuid4())
+
+    start_time = datetime.utcnow()
+    end_time = start_time + timedelta(minutes=time_limit)
+
+    session = {
+        "faculty_id": faculty_id,
+        "subject": subject,
+        "section": section,
+        "radius": radius,
+        "faculty_lat": lat,
+        "faculty_lng": lng,
+        "start_time": start_time,
+        "end_time": end_time,
+        "active": True,
+        "token": token
+    }
+
+    result = sessions_col.insert_one(session)
+    session_id = str(result.inserted_id)
+
+    # IMPORTANT: Change this to your Render / Cloud URL later
+    BASE_URL = "https://attendify26-production.up.railway.app"
+
+    qr_url = f"{BASE_URL}/mark?session_id={session_id}&token={token}"
+
+    # Create qr_codes directory if it doesn't exist
+    qr_dir = os.path.join(os.path.dirname(__file__), "qr_codes")
+    os.makedirs(qr_dir, exist_ok=True)
+    
     try:
-        data = request.json
-
-        faculty_id = data.get("faculty_id")
-        if not faculty_id:
-            return jsonify({
-                "success": False,
-                "message": "Faculty not logged in"
-            }), 401
-
-        subject = data.get("subject")
-        section = data.get("section")
-        radius = float(data.get("radius"))
-        time_limit = int(data.get("time_limit"))
-        lat = float(data.get("lat"))
-        lng = float(data.get("lng"))
-
-        token = str(uuid.uuid4())
-
-        start_time = datetime.utcnow()
-        end_time = start_time + timedelta(minutes=time_limit)
-
-        session = {
-            "faculty_id": faculty_id,
-            "subject": subject,
-            "section": section,
-            "radius": radius,
-            "faculty_lat": lat,
-            "faculty_lng": lng,
-            "start_time": start_time,
-            "end_time": end_time,
-            "active": True,
-            "token": token
-        }
-
-        result = sessions_col.insert_one(session)
-        session_id = str(result.inserted_id)
-
-        BASE_URL = "https://attendify26-production.up.railway.app"
-
-        qr_url = f"{BASE_URL}/mark.html?session_id={session_id}&token={token}"
-        
         img = qrcode.make(qr_url)
-        buffer = io.BytesIO()
-        img.save(buffer, format="PNG")
-        qr_base64 = base64.b64encode(buffer.getvalue()).decode()
-
-        return jsonify({
-            "success": True,
-            "session_id": session_id,
-            "token": token,
-            "qr_url": qr_url,
-            "qr_base64": qr_base64
-        })
-
+        qr_filename = f"qr_{session_id}.png"
+        qr_path = os.path.join(qr_dir, qr_filename)
+        img.save(qr_path)
     except Exception as e:
-        print("CREATE SESSION ERROR:", e)
-        return jsonify({
-            "success": False,
-            "message": "Server error"
-        }), 500
+        print(f"Error generating QR code: {e}")
+        return jsonify({"success": False, "message": "Failed to generate QR code"}), 500
+
+    return jsonify({
+        "success": True,
+        "session_id": session_id,
+        "token": token,
+        "qr_url": qr_url,
+        "qr_image": f"qr/{qr_filename}"
+    })
 
 # ------------------ Mark Attendance ------------------
 
@@ -204,16 +194,12 @@ def mark_page():
 
 # ------------------ Serve QR Image Files ------------------
 
-@app.route("/<path:filename>")
-def serve_file(filename):
-    return send_from_directory(os.getcwd(), filename)
+@app.route("/qr/<filename>")
+def serve_qr(filename):
+    qr_dir = os.path.join(os.path.dirname(__file__), "qr_codes")
+    return send_from_directory(qr_dir, filename)
 
 # ------------------ Run Server ------------------
 
 if __name__ == "__main__":
     app.run(debug=True, host="0.0.0.0")
-
-
-
-
-
